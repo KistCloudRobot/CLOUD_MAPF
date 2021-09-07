@@ -11,6 +11,7 @@ import deps.mapElements as mapElements
 # import a_agent
 import deps.planningTools as pt
 import deps.printInColor as pic
+from threading import Thread
 
 from arbi_agent.agent.arbi_agent import ArbiAgent
 from arbi_agent.agent import arbi_agent_excutor
@@ -20,11 +21,9 @@ robot_path_delim = ':'
 robot_robot_delim = ';'
 path_path_delim = '-'
 
-arbiMAPF = "agent://www.arbi.com/MAPF"
-
 
 class aAgent(ArbiAgent):
-    def __init__(self, agent_name, broker_url="tcp://127.0.0.1:61616"):
+    def __init__(self, agent_name, broker_url="tcp://172.16.165.204:61316"):
         super().__init__()
         self.broker_url = broker_url
         self.agent_name = agent_name
@@ -35,18 +34,16 @@ class aAgent(ArbiAgent):
 
     def on_request(self, sender: str, request: str) -> str:
         print(self.agent_url + "\t-> receive request : " + request)
-        return handleReqest(request)
+        Thread(target=handleReqest, args=(sender, request, self, ), daemon=True).start()
+        return "(ok)"
         # return "(request ok)"
 
-    """
-    def on_notify(self, content):
-        gl_notify = GLFactory.new_gl_from_gl_string(content)
-    """
+    def on_notify(self, sender: str, notification: str):
+        print(sender + "\t-> notification : " + notification)
 
     def on_query(self, sender: str, query: str) -> str:
         print(self.agent_url + "\t-> receive query : " + query)
-        # print(query)
-        return handleReqest(query)
+        return "(ok)"
 
     def execute(self, broker_type=2):
         arbi_agent_excutor.execute(self.broker_url, self.agent_name, self, broker_type)
@@ -99,9 +96,8 @@ def arbi2msg(arbi_msg):
     return ';'.join(robotSet)
 
 
-def handleReqest(msg_gl):
+def handleReqest(sender, msg_gl, agent):
     handle_start = time.time()
-    print(msg_gl)
     # convert arbi Gl to custom format
     msg = arbi2msg(msg_gl)
     # name1,start1,goal1;name2,start2,goal2, ...
@@ -130,7 +126,7 @@ def handleReqest(msg_gl):
     # convert to arbi format
     conv = msg2arbi(out_msg)
     # return out_msg
-    return conv
+    agent.send(sender, conv)
 
 
 def planning_loop(agents_in):
@@ -197,7 +193,7 @@ def planning_loop(agents_in):
 def main():
     # Initialize Arbi Client Agent
     # start an agent
-    arbiAgent = aAgent(agent_name=arbiMAPF)
+    arbiAgent = aAgent(agent_name="agent://www.arbi.com/Local/MultiAgentPathFinder")
     arbiAgent.execute()
 
     # arbiAgent.send("agent://www.arbi.com/receiveTest","Hi Bmo");
