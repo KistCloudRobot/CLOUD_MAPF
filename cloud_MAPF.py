@@ -4,6 +4,9 @@ author: Ashwin Bose (@atb033)
 Modifed: Ahn, Jeeho
 """
 import yaml
+import pathlib
+import os
+import socket
 # Dr. Oh Map Parse Tool
 from map_parse import MapMOS as mapParser
 import time
@@ -23,7 +26,7 @@ path_path_delim = '-'
 
 
 class aAgent(ArbiAgent):
-    def __init__(self, agent_name, broker_url="tcp://172.16.165.204:61316"):
+    def __init__(self, agent_name, broker_url="tcp://172.16.165.204:8000"):
         super().__init__()
         self.broker_url = broker_url
         self.agent_name = agent_name
@@ -34,15 +37,17 @@ class aAgent(ArbiAgent):
 
     def on_request(self, sender: str, request: str) -> str:
         print(self.agent_url + "\t-> receive request : " + request)
-        Thread(target=handleReqest, args=(sender, request, self, ), daemon=True).start()
-        return "(ok)"
-        # return "(request ok)"
+        time.sleep(0.05)
+        result = handleReqest(request)
+        print("response : " + result)
+        return result
 
     def on_notify(self, sender: str, notification: str):
         print(sender + "\t-> notification : " + notification)
 
     def on_query(self, sender: str, query: str) -> str:
         print(self.agent_url + "\t-> receive query : " + query)
+        time.sleep(0.05)
         return "(ok)"
 
     def execute(self, broker_type=2):
@@ -96,7 +101,7 @@ def arbi2msg(arbi_msg):
     return ';'.join(robotSet)
 
 
-def handleReqest(sender, msg_gl, agent):
+def handleReqest(msg_gl):
     handle_start = time.time()
     # convert arbi Gl to custom format
     msg = arbi2msg(msg_gl)
@@ -124,9 +129,11 @@ def handleReqest(sender, msg_gl, agent):
     pic.printC("Event Hander spent: " + str(handle_end - handle_start) + " seconds", Warning)
 
     # convert to arbi format
+    print("out msg : " + out_msg)
     conv = msg2arbi(out_msg)
+    print("conv msg : " + conv)
     # return out_msg
-    agent.send(sender, conv)
+    return conv
 
 
 def planning_loop(agents_in):
@@ -193,7 +200,10 @@ def planning_loop(agents_in):
 def main():
     # Initialize Arbi Client Agent
     # start an agent
-    arbiAgent = aAgent(agent_name="agent://www.arbi.com/Local/MultiAgentPathFinder")
+    agent_name = "agent://www.arbi.com/" + str(os.getenv("AGENT")) + "/MultiAgentPathFinder"
+    broker_url = "tcp://" + str(socket.gethostbyname(socket.gethostname())) + ":61316"
+    arbiAgent = aAgent(agent_name=agent_name,
+                       broker_url=broker_url)
     arbiAgent.execute()
 
     # arbiAgent.send("agent://www.arbi.com/receiveTest","Hi Bmo");
@@ -203,7 +213,9 @@ def main():
     # parser.add_argument("output", help="output file with the schedule")
     # args = parser.parse_args()
 
-    args = {"param": "yaml/input.yaml", "output": "yaml/output.yaml"}
+    parent_dir = str(pathlib.Path(__file__).parent.resolve())
+
+    args = {"param": parent_dir + "/yaml/input.yaml", "output": parent_dir + "/yaml/output.yaml"}
 
     # Read from input file
     """
@@ -239,7 +251,7 @@ def main():
 
     # Jeeho Edit
     # parse edges
-    edges_dict = mapParser.MapMOS("map_parse/map_cloud.txt").Edge
+    edges_dict = mapParser.MapMOS(parent_dir + "/map_parse/map_cloud.txt").Edge
 
     # initialize Map Elements data
     global mapElems
@@ -251,12 +263,11 @@ def main():
     # from server data
     # Environment should be re-initialized with modified agents
 
-    while (1):
+    while True:
         #   planResult = planning_loop()
         time.sleep(0.01)
 
     # close arbi agent
-    arbiAgent.close()
 
 
 if __name__ == "__main__":

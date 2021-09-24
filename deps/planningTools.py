@@ -1,15 +1,13 @@
 import sys
-#sys.path.insert(0, '../')
-sys.path.insert(0, './deps')
-import argparse
-import yaml
+import pathlib
+
+sys.path.append(str(pathlib.Path(__file__).parent.resolve()))
+
 from math import fabs
 from itertools import combinations
 from copy import deepcopy
 
 from a_star import AStar
-import time
-import mapElements
 import printInColor as pic
 
 def grid2graph(xy_tuple,g2g_map):
