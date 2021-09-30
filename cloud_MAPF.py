@@ -6,7 +6,6 @@ Modifed: Ahn, Jeeho
 import yaml
 import pathlib
 import os
-import socket
 # Dr. Oh Map Parse Tool
 from map_parse import MapMOS as mapParser
 import time
@@ -201,7 +200,7 @@ def main():
     # Initialize Arbi Client Agent
     # start an agent
     agent_name = "agent://www.arbi.com/" + str(os.getenv("AGENT")) + "/MultiAgentPathFinder"
-    broker_url = "tcp://" + str(socket.gethostbyname(socket.gethostname())) + ":61316"
+    broker_url = 'tcp://' + os.environ["JMS_BROKER"]
     arbiAgent = aAgent(agent_name=agent_name,
                        broker_url=broker_url)
     arbiAgent.execute()
